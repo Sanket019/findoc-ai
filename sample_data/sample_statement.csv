@@ -1,0 +1,37 @@
+Date,Description,Amount,Type
+2026-07-01,Opening Balance,,
+2026-07-02,Salary Credit NEFT - TechCorp Pvt Ltd,52000.00,Credit
+2026-07-03,UPI/Ashish Kumar/Rent July,12000.00,Debit
+2026-07-04,UPI/Swiggy/Order#4821,349.00,Debit
+2026-07-05,ATM Cash Withdrawal - SBI Koramangala,3000.00,Debit
+2026-07-06,UPI/Zomato/Order#7734,280.00,Debit
+2026-07-07,UPI/Rahul Sharma/Movie tickets,600.00,Debit
+2026-07-08,NEFT/Amazon Pay/INV-2024-001,1299.00,Debit
+2026-07-09,UPI/Priya Mehta/Lunch split,250.00,Debit
+2026-07-10,UPI/Ola Cabs/Ride,189.00,Debit
+2026-07-11,IMPS/Flipkart/Order#F88821,799.00,Debit
+2026-07-12,UPI/Swiggy/Order#5912,412.00,Debit
+2026-07-13,Interest Credit - Savings Account,82.50,Credit
+2026-07-14,UPI/Uber/Ride to Airport,654.00,Debit
+2026-07-15,UPI/Ankit Joshi/Freelance Payment Recv,5000.00,Credit
+2026-07-16,UPI/Netflix/Monthly Subscription,649.00,Debit
+2026-07-17,UPI/Blinkit/Groceries,1120.00,Debit
+2026-07-18,POS/Reliance Fresh/Groceries,876.00,Debit
+2026-07-19,UPI/Deepak Verma/Dinner,400.00,Debit
+2026-07-20,ATM Cash Withdrawal - HDFC Indiranagar,2000.00,Debit
+2026-07-21,UPI/Apollo Pharmacy/Medicines,520.00,Debit
+2026-07-22,UPI/Rapido/Bike Ride,75.00,Debit
+2026-07-23,NEFT/Society Maintenance/July,1500.00,Debit
+2026-07-24,UPI/Spotify/Subscription,119.00,Debit
+2026-07-25,UPI/Monika Singh/Birthday Gift,1000.00,Debit
+2026-07-26,UPI/Amazon Prime/Annual,1499.00,Debit
+2026-07-27,UPI/Zomato/Order#9901,330.00,Debit
+2026-07-28,UPI/Vijay Kumar/Coffee,180.00,Debit
+2026-07-29,Closing Balance,,
+Account Holder,Sanket Sharma,,
+Account Number,XXXX XXXX 4521,,
+IFSC Code,SBIN0012345,,
+Branch,Koramangala Bangalore,,
+Statement Period,July 2026,,
+Opening Balance,8450.00,,
+Closing Balance,27309.50,,
