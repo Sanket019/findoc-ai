@@ -1,0 +1,46 @@
+Date,Description,Amount,Type,Category,Payment_Method,Balance
+2026-05-01,Salary Credit NEFT - TechCorp Solutions,55000.0,Credit,Income,NEFT,70000.0
+2026-05-03,UPI/Rent Payment/May/Landlord,15000.0,Debit,Housing,UPI,55000.0
+2026-05-04,UPI/Swiggy/Order#9210,420.0,Debit,Food,UPI,54580.0
+2026-05-06,POS/Reliance Fresh/Groceries,1850.0,Debit,Food,Card,52730.0
+2026-05-08,UPI/Uber/Ride to Office,240.0,Debit,Transport,UPI,52490.0
+2026-05-10,ATM Cash Withdrawal - HDFC Bank Indiranagar,3000.0,Debit,Cash Withdrawal,Cash,49490.0
+2026-05-12,UPI/Blinkit/Household Essentials,680.0,Debit,Food,UPI,48810.0
+2026-05-14,NEFT/BESCOM Electricity Bill,1450.0,Debit,Housing,NEFT,47360.0
+2026-05-15,UPI/Ankit Sharma/Freelance Design Recv,8500.0,Credit,Income,UPI,55860.0
+2026-05-17,UPI/Netflix/Monthly Subscription,649.0,Debit,Entertainment,UPI,55211.0
+2026-05-19,POS/Apollo Pharmacy/Medicines,760.0,Debit,Health,Card,54451.0
+2026-05-21,UPI/Zomato/Dinner Order,580.0,Debit,Food,UPI,53871.0
+2026-05-24,IMPS/Amazon/Order#408-1123,2199.0,Debit,Shopping,IMPS,51672.0
+2026-05-26,UPI/Ola Cabs/Airport Trip,780.0,Debit,Transport,UPI,50892.0
+2026-05-29,UPI/Spotify India/Music Subscription,119.0,Debit,Entertainment,UPI,50773.0
+2026-05-31,Interest Credit - Savings Account,94.5,Credit,Income,Other,50867.5
+2026-06-01,Salary Credit NEFT - TechCorp Solutions,55000.0,Credit,Income,NEFT,105867.5
+2026-06-03,UPI/Rent Payment/June/Landlord,15000.0,Debit,Housing,UPI,90867.5
+2026-06-04,UPI/Swiggy/Gourmet Lunch,510.0,Debit,Food,UPI,90357.5
+2026-06-06,POS/Nature Basket/Organic Groceries,2240.0,Debit,Food,Card,88117.5
+2026-06-08,UPI/Airtel Broadband/Monthly Bill,1179.0,Debit,Housing,UPI,86938.5
+2026-06-11,ATM Cash Withdrawal - SBI ATM Koramangala,4000.0,Debit,Cash Withdrawal,Cash,82938.5
+2026-06-14,UPI/Uber/Office Commute,310.0,Debit,Transport,UPI,82628.5
+2026-06-16,UPI/Zomato/Weekend Lunch,640.0,Debit,Food,UPI,81988.5
+2026-06-18,IMPS/Flipkart/Electronics Accessories,1599.0,Debit,Shopping,IMPS,80389.5
+2026-06-20,UPI/CultFit/Gym Membership Monthly,2400.0,Debit,Health,UPI,77989.5
+2026-06-22,UPI/Zepto/10Min Groceries,490.0,Debit,Food,UPI,77499.5
+2026-06-25,POS/Shell Petrol Pump/Fuel,2500.0,Debit,Transport,Card,74999.5
+2026-06-27,UPI/BookMyShow/Movie Tickets,850.0,Debit,Entertainment,UPI,74149.5
+2026-06-30,Interest Credit - Savings Account,105.2,Credit,Income,Other,74254.7
+2026-07-01,Salary Credit NEFT - TechCorp Solutions,55000.0,Credit,Income,NEFT,129254.7
+2026-07-03,UPI/Rent Payment/July/Landlord,15000.0,Debit,Housing,UPI,114254.7
+2026-07-05,UPI/Swiggy/Family Dinner,1150.0,Debit,Food,UPI,113104.7
+2026-07-07,POS/Reliance Fresh/Weekly Groceries,1980.0,Debit,Food,Card,111124.7
+2026-07-09,UPI/BESCOM Electricity Bill/July,1620.0,Debit,Housing,UPI,109504.7
+2026-07-12,ATM Cash Withdrawal - HDFC Bank Indiranagar,2000.0,Debit,Cash Withdrawal,Cash,107504.7
+2026-07-15,UPI/Rohit Verma/Consulting Fee Recv,6000.0,Credit,Income,UPI,113504.7
+2026-07-17,UPI/Uber/Airport Ride,720.0,Debit,Transport,UPI,112784.7
+2026-07-19,UPI/Zomato/Order#7812,390.0,Debit,Food,UPI,112394.7
+2026-07-21,POS/MedPlus/Prescription Medicines,840.0,Debit,Health,Card,111554.7
+2026-07-23,IMPS/Amazon/Prime Day Electronics,4500.0,Debit,Shopping,IMPS,107054.7
+2026-07-25,UPI/Blinkit/Fresh Vegetables,560.0,Debit,Food,UPI,106494.7
+2026-07-27,POS/HP Petrol Pump/Fuel,2200.0,Debit,Transport,Card,104294.7
+2026-07-29,UPI/Netflix/Monthly Subscription,649.0,Debit,Entertainment,UPI,103645.7
+2026-07-31,Interest Credit - Savings Account,112.4,Credit,Income,Other,103758.1
