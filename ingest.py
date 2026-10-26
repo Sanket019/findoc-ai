@@ -1,15 +1,3 @@
-"""
-ingest.py — Document ingestion and structured transaction extraction.
-
-Pipeline:
-  1. process_and_store_text() — Chunks text → HuggingFace embeddings → ChromaDB (for RAG)
-  2. parse_csv_statement()    — Deterministic, high-speed CSV bank export parser (no LLM required)
-  3. extract_transactions()   — Groq LLM parses raw text (PDFs) → structured DataFrame
-     - Supports chunked/batched processing for long statements without 5,000-character truncation
-     - Uses a 3-model fallback chain so rate limits on one model don't break the app
-     - Built-in heuristic/regex recovery fallback if all LLM models are unavailable
-"""
-
 import sys
 import os
 import re
@@ -28,26 +16,14 @@ from langchain_groq import ChatGroq
 
 load_dotenv()
 
-
-# ---------------------------------------------------------------------------
-# Utility: Windows-safe print
-# ---------------------------------------------------------------------------
 def safe_print(msg: str):
-    """
-    Print to Windows cmd.exe without crashing on special Unicode chars.
-    Strips: U+202F (narrow no-break space pandas uses in number formatting)
-            U+20B9 (Indian Rupee sign, not in cp1252)
-    """
+
     msg = str(msg).replace("\u202f", "").replace("\xa0", " ")
     try:
         print(msg)
     except UnicodeEncodeError:
         print(msg.encode("ascii", errors="replace").decode("ascii"))
 
-
-# ---------------------------------------------------------------------------
-# CATEGORY & PAYMENT METHOD INFERENCE (Deterministic Rules)
-# ---------------------------------------------------------------------------
 CATEGORY_RULES = [
     (r"\b(salary|interest credit|dividend|consulting|freelance|stipend|income)\b", "Income"),
     (r"\b(rent|society|maintenance|bescom|electricity|water|broadband|airtel|wifi|gas|utility)\b", "Housing"),
@@ -61,16 +37,15 @@ CATEGORY_RULES = [
 ]
 
 def infer_category(desc: str) -> str:
-    """Infer transaction category from description using deterministic keyword rules."""
+
     desc_l = str(desc).lower()
     for pattern, cat in CATEGORY_RULES:
         if re.search(pattern, desc_l):
             return cat
     return "Other"
 
-
 def infer_payment_method(desc: str) -> str:
-    """Infer payment method from transaction description prefixes and keywords."""
+
     desc_l = str(desc).lower()
     if re.search(r"\bupi\b|^upi/", desc_l):
         return "UPI"
@@ -84,18 +59,8 @@ def infer_payment_method(desc: str) -> str:
         return "Card"
     return "Other"
 
-
-# ---------------------------------------------------------------------------
-# FUNCTION 1 — process_and_store_text (builds the RAG vector store)
-# ---------------------------------------------------------------------------
 def process_and_store_text(text: str, source_name: str, session_id: Optional[str] = None) -> Chroma:
-    """
-    Splits raw text into overlapping chunks, embeds them with a local
-    HuggingFace model (all-MiniLM-L6-v2), and stores them in ChromaDB.
-    Uses an isolated collection name per document/session to prevent vector contamination.
 
-    Returns the Chroma vectorstore object used later for similarity search.
-    """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
         chunk_overlap=50,
@@ -105,7 +70,6 @@ def process_and_store_text(text: str, source_name: str, session_id: Optional[str
     if not chunks:
         raise ValueError("No text chunks produced — document may be empty.")
 
-    # Unique collection name to isolate vector spaces across documents
     raw_ident = f"{source_name}_{session_id or 'default'}"
     ident_hash = hashlib.md5(raw_ident.encode("utf-8")).hexdigest()[:12]
     clean_name = re.sub(r"[^a-zA-Z0-9]", "_", source_name)[:18].strip("_") or "doc"
@@ -141,9 +105,8 @@ def process_and_store_text(text: str, source_name: str, session_id: Optional[str
         )
     return vectorstore
 
-
 def _clean_num(val) -> Optional[float]:
-    """Clean and parse a numeric string, stripping currency symbols and formatting commas."""
+
     if pd.isna(val) or val is None:
         return None
     s = str(val).strip()
@@ -153,25 +116,8 @@ def _clean_num(val) -> Optional[float]:
     except (ValueError, TypeError):
         return None
 
-
-# ---------------------------------------------------------------------------
-# FUNCTION 2 — parse_csv_statement (Deterministic CSV Parser)
-# ---------------------------------------------------------------------------
 def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-    """
-    High-speed, deterministic parser for CSV bank statements.
-    Eliminates reliance on LLM extraction for tabular files.
 
-    Features:
-      - Automatically detects header row skipping top metadata
-      - Extracts statement metadata (account holder, dates, balances)
-      - Flexible column mapping (supports debit/credit separate or combined amount+type)
-      - Deterministic category and payment method inference
-      - Deduplicates transactions and reports validation summary
-
-    Returns:
-      (pd.DataFrame, dict summary)
-    """
     lines: List[str] = []
     if isinstance(content_or_path, str) and os.path.exists(content_or_path):
         for enc in ["utf-8", "latin1", "cp1252"]:
@@ -218,7 +164,6 @@ def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
             "warnings": ["Empty CSV file provided."]
         }
 
-    # Find header row
     header_idx = -1
     for i, line in enumerate(clean_lines):
         line_l = line.lower()
@@ -229,7 +174,6 @@ def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     if header_idx == -1:
         header_idx = 0
 
-    # Extract metadata lines before the header
     for line in clean_lines[:header_idx]:
         parts = [p.strip() for p in line.split(",") if p.strip()]
         if len(parts) >= 2:
@@ -248,7 +192,6 @@ def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
             "warnings": [f"CSV parsing failed: {e}"]
         }
 
-    # Normalize column names
     col_map = {}
     for col in raw_df.columns:
         c_clean = str(col).strip().lower().replace(" ", "_")
@@ -290,7 +233,6 @@ def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
 
         raw_date_str = str(raw_date).strip()
 
-        # Check if row is a metadata row placed in the table body (e.g. at bottom)
         if any(mk in raw_date_str.lower() for mk in meta_keywords):
             metadata[raw_date_str] = raw_desc or str(row.get("amount", ""))
             continue
@@ -333,21 +275,18 @@ def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
             invalid_rows += 1
             continue
 
-        # Category
         cat = row.get("category")
         if pd.isna(cat) or str(cat).strip() in ["", "Other", "nan", "None"]:
             cat = infer_category(raw_desc)
         else:
             cat = str(cat).strip()
 
-        # Payment method
         pm = row.get("payment_method")
         if pd.isna(pm) or str(pm).strip() in ["", "Other", "nan", "None"]:
             pm = infer_payment_method(raw_desc)
         else:
             pm = str(pm).strip()
 
-        # Balance
         bal = row.get("balance")
         bal_num = _clean_num(bal)
         bal_val = round(float(bal_num), 2) if bal_num is not None else None
@@ -379,7 +318,6 @@ def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     if dupes_removed > 0:
         warnings.append(f"Removed {dupes_removed} duplicate transaction records.")
 
-    # Calculate reconciliation if opening & closing balances are present
     reconciliation = {"status": "unverified", "message": "Opening/closing balance not specified"}
     op_bal = metadata.get("Opening Balance")
     cl_bal = metadata.get("Closing Balance")
@@ -422,11 +360,6 @@ def parse_csv_statement(content_or_path) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     }
     return out_df, summary
 
-
-# ---------------------------------------------------------------------------
-# FUNCTION 3 — extract_transactions (LLM extraction with chunking & fallback)
-# ---------------------------------------------------------------------------
-
 EXTRACTION_MODELS = [
     ("openai/gpt-oss-120b", 1000),
     ("qwen/qwen3.8-27b",     800),
@@ -437,9 +370,8 @@ EMPTY_DF = pd.DataFrame(
     columns=["date", "description", "amount", "type", "category", "payment_method"]
 )
 
-
 def _make_prompt(text: str) -> str:
-    """Build the LLM extraction prompt for a text segment."""
+
     return f"""You are a precise financial data parser.
 
 Your ONLY job: extract every transaction from the bank statement below
@@ -465,14 +397,10 @@ BANK STATEMENT TEXT:
 {text}
 """
 
-
 def extract_transactions_regex_fallback(text: str) -> pd.DataFrame:
-    """
-    Heuristic regex parser for tabular PDF text when Groq LLM is unavailable,
-    unconfigured, or rate-limited.
-    """
+
     rows = []
-    # Pattern matching: date, narration, amount, optional type
+
     pattern = re.compile(
         r"(?P<date>\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})\s+"
         r"(?P<desc>[A-Za-z0-9/_\-\.\s]{3,40}?)\s+"
@@ -514,9 +442,8 @@ def extract_transactions_regex_fallback(text: str) -> pd.DataFrame:
     df = pd.DataFrame(rows).drop_duplicates(subset=["date", "description", "amount", "type"])
     return df
 
-
 def _extract_single_chunk(chunk_text: str, progress_callback=None) -> Tuple[pd.DataFrame, Dict[str, str]]:
-    """Extract transactions from a single chunk of bank statement text."""
+
     debug = {"raw_output": "", "clean_json": "", "error": "", "model_used": ""}
     prompt = _make_prompt(chunk_text)
 
@@ -570,7 +497,6 @@ def _extract_single_chunk(chunk_text: str, progress_callback=None) -> Tuple[pd.D
                 if col not in df.columns:
                     df[col] = default
 
-            # Normalize categories and payment methods
             df["category"] = df.apply(
                 lambda r: infer_category(r["description"]) if r["category"] in ["", "Other", None] else r["category"],
                 axis=1
@@ -594,27 +520,18 @@ def _extract_single_chunk(chunk_text: str, progress_callback=None) -> Tuple[pd.D
     debug["error"] = f"All models failed. Last error: {last_error}"
     return EMPTY_DF.copy(), debug
 
-
 def extract_transactions(text: str, progress_callback=None) -> Tuple[pd.DataFrame, Dict[str, str]]:
-    """
-    Extract transactions from raw bank statement text.
-    Handles long statements by splitting into manageable text batches
-    without truncating to 5,000 characters.
 
-    If Groq API calls fail (e.g. rate limit, invalid key), automatically falls
-    back to regex pattern recovery.
-    """
     if not text or not text.strip():
         return EMPTY_DF.copy(), {"error": "Empty text provided", "model_used": "none", "raw_output": "", "clean_json": ""}
 
-    # Check if text is short enough for a single request
     MAX_CHUNK_CHARS = 4000
     if len(text) <= MAX_CHUNK_CHARS:
         if progress_callback:
             progress_callback("Analyzing statement transactions...")
         df, debug = _extract_single_chunk(text, progress_callback=progress_callback)
         if df.empty and not os.getenv("GROQ_API_KEY"):
-            # Try regex fallback
+
             safe_print("[EXTRACT] No GROQ_API_KEY set; attempting regex fallback.")
             df_regex = extract_transactions_regex_fallback(text)
             if not df_regex.empty:
@@ -623,7 +540,6 @@ def extract_transactions(text: str, progress_callback=None) -> Tuple[pd.DataFram
                 return df_regex, debug
         return df, debug
 
-    # Long statement: Split into line-aware chunks
     safe_print(f"[EXTRACT] Long document ({len(text)} chars) — splitting into batches.")
     lines = text.splitlines()
     chunks = []
@@ -657,7 +573,7 @@ def extract_transactions(text: str, progress_callback=None) -> Tuple[pd.DataFram
 
     if collected_dfs:
         combined_df = pd.concat(collected_dfs, ignore_index=True)
-        # Drop duplicates across chunk boundaries
+
         combined_df = combined_df.drop_duplicates(
             subset=["date", "description", "amount", "type"]
         ).reset_index(drop=True)
@@ -665,7 +581,6 @@ def extract_transactions(text: str, progress_callback=None) -> Tuple[pd.DataFram
         safe_print(f"[EXTRACT] Combined total: {len(combined_df)} unique transactions.")
         return combined_df, last_debug
 
-    # Fallback to regex if all chunks failed
     safe_print("[EXTRACT] LLM chunks returned no records; trying regex fallback.")
     fallback_df = extract_transactions_regex_fallback(text)
     if not fallback_df.empty:

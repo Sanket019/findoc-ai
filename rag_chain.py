@@ -1,15 +1,3 @@
-"""
-rag_chain.py — LLM-powered Q&A for the Financial Document Assistant.
-
-Two distinct pipelines:
-  get_answer()                — RAG lookup: retrieves relevant chunks from
-                                ChromaDB and asks the LLM a grounded question.
-  answer_analytical_question()— Pandas-first analytics: all calculations are
-                                performed deterministically by Python/Pandas;
-                                Groq LLM only phrases the final sentence.
-                                Works 100% offline/without API key if needed!
-"""
-
 import os
 import re
 from typing import Optional, List, Dict, Any
@@ -22,36 +10,23 @@ from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
-# Model constants
 GROQ_MODEL      = "openai/gpt-oss-120b"
 GROQ_MAX_TOKENS = 400
 
-
-# ---------------------------------------------------------------------------
-# Utility
-# ---------------------------------------------------------------------------
 def safe_print(msg: str):
-    """Print safely on Windows (strips U+202F narrow spaces and handles cp1252)."""
+
     msg = str(msg).replace("\u202f", "").replace("\xa0", " ")
     try:
         print(msg)
     except UnicodeEncodeError:
         print(msg.encode("ascii", errors="replace").decode("ascii"))
 
-
 def fmt_currency(amount: float) -> str:
-    """Format number as Indian Rupees string."""
+
     return f"Rs.{amount:,.2f}"
 
-
-# ---------------------------------------------------------------------------
-# FUNCTION 1 — get_answer  (RAG / Semantic Document Lookup)
-# ---------------------------------------------------------------------------
 def get_answer(question: str, vectorstore) -> str:
-    """
-    Retrieves the most relevant text chunks from ChromaDB via similarity search,
-    then asks the LLM to answer grounded strictly in that context.
-    """
+
     if vectorstore is None:
         return "No document is currently indexed. Please load sample data or upload a bank statement first."
 
@@ -102,10 +77,6 @@ Answer:"""
         safe_print(f"[get_answer] Error: {e}")
         return f"Unable to retrieve an answer at this time: {e}"
 
-
-# ---------------------------------------------------------------------------
-# FUNCTION 2 — answer_analytical_question  (Deterministic Analytics)
-# ---------------------------------------------------------------------------
 MONTH_MAP = {
     "january": 1, "jan": 1,
     "february": 2, "feb": 2,
@@ -145,16 +116,8 @@ PAYMENT_MAP = {
     "cash": "Cash",
 }
 
-
 def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> str:
-    """
-    Pandas-first deterministic analytics engine.
-    All mathematical operations (totals, counts, averages, groupbys, filters)
-    are calculated exclusively in Python/Pandas.
 
-    Groq LLM is used solely to format the pre-calculated facts into natural language.
-    If the LLM is unavailable or unconfigured, formatted markdown facts are returned directly.
-    """
     if transactions_df is None or transactions_df.empty:
         return (
             "No structured transactions are currently available from this statement.\n\n"
@@ -164,7 +127,6 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
     q = question.lower()
     df = transactions_df.copy()
 
-    # Normalize columns
     df["cat_lower"]  = df.get("category", pd.Series(dtype=str)).astype(str).str.lower().fillna("")
     df["desc_lower"] = df.get("description", pd.Series(dtype=str)).astype(str).str.lower().fillna("")
     df["pay_lower"]  = df.get("payment_method", pd.Series(dtype=str)).astype(str).str.lower().fillna("")
@@ -178,11 +140,10 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
 
     facts: List[str] = []
 
-    # 1. Check for specific month queries (e.g. "in July", "May spending")
     matched_month_num = None
     matched_month_name = None
     for m_name, m_num in MONTH_MAP.items():
-        # Match whole word
+
         if re.search(rf"\b{m_name}\b", q):
             matched_month_num = m_num
             matched_month_name = m_name.capitalize()
@@ -203,7 +164,6 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
                 f"  - {c}: {fmt_currency(a)}" for c, a in cat_m.head(5).items()
             ))
 
-    # 2. Month-over-month comparison / monthly trend
     elif any(kw in q for kw in ["across months", "monthly", "by month", "each month", "compare month"]):
         if not df["dt"].isna().all():
             df["month_yr"] = df["dt"].dt.to_period("M").astype(str)
@@ -215,7 +175,6 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
                 breakdown_lines.append(f"  - {m_str}: Spent {fmt_currency(dr_val)}, Received {fmt_currency(cr_val)}")
             facts.append("Monthly summary:\n" + "\n".join(breakdown_lines))
 
-    # 3. Category match
     matched_cat = None
     for kw, cat in CATEGORY_MAP.items():
         if re.search(rf"\b{kw}\b", q):
@@ -235,7 +194,6 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
                 for _, r in cat_df.head(6).iterrows()
             ))
 
-    # 4. Payment method match
     matched_pm = None
     for kw, pm in PAYMENT_MAP.items():
         if re.search(rf"\b{kw}\b", q):
@@ -256,33 +214,28 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
         if c_tot > 0:
             facts.append(f"Total received via {matched_pm}: {fmt_currency(c_tot)} ({len(pm_credits)} credits)")
 
-    # 5. Top Payees / Merchants
     if any(kw in q for kw in ["whom", "who", "payee", "paid most", "pay most", "merchant", "highest payee"]):
         top_payees = debits.groupby("description")["amount"].sum().sort_values(ascending=False).head(5)
         facts.append("Top 5 merchants / payees by spend:\n" + "\n".join(
             f"  - {desc}: {fmt_currency(amt)}" for desc, amt in top_payees.items()
         ))
 
-    # 6. Largest / Highest individual transactions
     if any(kw in q for kw in ["largest", "biggest", "highest transaction", "most expensive", "top transaction"]):
         top5 = debits.nlargest(5, "amount")[["date", "description", "amount"]]
         facts.append("Top 5 largest debit transactions:\n" + "\n".join(
             f"  - {r['description']}: {fmt_currency(r['amount'])}" for _, r in top5.iterrows()
         ))
 
-    # 7. Net Cash Flow / Savings
     if any(kw in q for kw in ["net cash flow", "net flow", "savings", "saved", "net balance", "surplus"]):
         ts = debits["amount"].sum()
         tr = credits["amount"].sum()
         net = tr - ts
         facts.append(f"Net Cash Flow: {fmt_currency(net)} (Total Received: {fmt_currency(tr)} minus Total Spent: {fmt_currency(ts)})")
 
-    # 8. Average debit transaction
     if any(kw in q for kw in ["average", "mean", "avg"]):
         avg_d = debits["amount"].mean() if not debits.empty else 0.0
         facts.append(f"Average debit transaction: {fmt_currency(avg_d)} (across {len(debits)} debits)")
 
-    # 9. Total spending / total received
     if any(kw in q for kw in ["total spending", "total spend", "how much did i spend", "overall spend", "total debits"]):
         ts = debits["amount"].sum()
         facts.append(f"Total spending (all debits): {fmt_currency(ts)} across {len(debits)} transactions.")
@@ -291,7 +244,6 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
         tr = credits["amount"].sum()
         facts.append(f"Total received (all credits): {fmt_currency(tr)} across {len(credits)} transactions.")
 
-    # 10. Specific merchant or keyword search
     if not facts:
         STOP_WORDS = {
             "how", "much", "did", "i", "pay", "to", "total", "spent", "spend",
@@ -321,7 +273,6 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
                 for _, r in best_df.head(6).iterrows()
             ))
 
-    # General fallback summary if query didn't trigger any specific branch
     if not facts:
         ts = debits["amount"].sum()
         tr = credits["amount"].sum()
@@ -332,11 +283,9 @@ def answer_analytical_question(question: str, transactions_df: pd.DataFrame) -> 
 
     facts_text = "\n".join(facts)
 
-    # If Groq is not configured, return exact deterministic calculations directly
     if not os.getenv("GROQ_API_KEY"):
         return f"{facts_text}"
 
-    # Use Groq LLM solely to phrase the pre-computed exact figures
     try:
         llm = ChatGroq(model=GROQ_MODEL, temperature=0.2, max_tokens=GROQ_MAX_TOKENS)
         prompt = PromptTemplate(

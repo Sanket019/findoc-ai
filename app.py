@@ -1,14 +1,3 @@
-"""
-app.py — FinDoc AI: Bank Statement Analyser
-A student portfolio-ready, reliable, RAG-powered bank statement assistant built with:
-  Streamlit · LangChain · ChromaDB · Groq · Pandas · Plotly
-
-Architecture:
-  - Numerical & aggregate queries → Deterministic Python/Pandas calculation engine
-  - Factual & document lookup   → ChromaDB vector similarity search (RAG)
-  - One-click sample dataset    → Instant recruiter demo with 3 months of verified data
-"""
-
 import os
 from io import BytesIO
 import datetime
@@ -31,9 +20,6 @@ from rag_chain import get_answer, answer_analytical_question
 
 load_dotenv()
 
-# ===========================================================================
-# PAGE CONFIGURATION
-# ===========================================================================
 st.set_page_config(
     page_title="FinDoc AI — Bank Statement Analyser",
     page_icon="💰",
@@ -41,11 +27,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ===========================================================================
-# SESSION STATE INITIALIZATION (Guarantees Persistence Across Reruns)
-# ===========================================================================
 if "data_mode" not in st.session_state:
-    st.session_state["data_mode"] = "none"  # "none", "sample", or "uploaded"
+    st.session_state["data_mode"] = "none"
 if "transactions_df" not in st.session_state:
     st.session_state["transactions_df"] = None
 if "vectorstore" not in st.session_state:
@@ -59,12 +42,9 @@ if "validation_summary" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
 
-# ===========================================================================
-# CUSTOM CSS (Clean, Professional Dark-Navy with Restrained Teal Accents)
-# ===========================================================================
 st.markdown("""
 <style>
-/* ---- Palette & Foundations ---- */
+
 :root {
     --accent: #00D4AA;
     --accent-dark: #00a888;
@@ -73,7 +53,6 @@ st.markdown("""
     --card-border: #2d3748;
 }
 
-/* ---- KPI Metric Cards ---- */
 div[data-testid="metric-container"] {
     background: #1a1f2e !important;
     border: 1px solid #2d3748 !important;
@@ -91,13 +70,11 @@ div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
     font-weight: 700 !important;
 }
 
-/* ---- Sidebar Styling ---- */
 section[data-testid="stSidebar"] {
     background: #0f1117 !important;
     border-right: 1px solid #2d3748 !important;
 }
 
-/* ---- Clean Button Styling ---- */
 div[data-testid="stButton"] > button {
     border-radius: 6px !important;
     border: 1px solid #2d3748 !important;
@@ -114,7 +91,6 @@ div[data-testid="stButton"] > button:hover {
     background: #142824 !important;
 }
 
-/* ---- Typography ---- */
 h1, h2, h3, h4 {
     color: #f8fafc !important;
     font-weight: 600 !important;
@@ -123,24 +99,18 @@ p, span, label {
     color: #cbd5e1;
 }
 
-/* ---- Radio Source Selector ---- */
 div[data-testid="stRadio"] > div {
     gap: 12px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-
-# ===========================================================================
-# HELPERS
-# ===========================================================================
 def fmt_inr(amount: float) -> str:
-    """Format number as Indian Rupees."""
+
     return f"Rs.{amount:,.2f}"
 
-
 def clear_active_dataset():
-    """Wipe current document state to start completely fresh."""
+
     st.session_state["data_mode"] = "none"
     st.session_state["transactions_df"] = None
     st.session_state["vectorstore"] = None
@@ -150,16 +120,14 @@ def clear_active_dataset():
     st.session_state["messages"] = []
     st.session_state.pop("statement_uploader", None)
 
-
 def load_sample_dataset():
-    """Load the verified 3-month synthetic sample statement."""
+
     demo_csv_path = "data/demo_bank_statement.csv"
     if not os.path.exists(demo_csv_path):
         demo_csv_path = "sample_data/sample_statement.csv"
 
     df, summary = parse_csv_statement(demo_csv_path)
 
-    # Prepend structured metadata summary for RAG semantic search
     with open(demo_csv_path, "r", encoding="utf-8") as f:
         demo_raw_text = f.read()
 
@@ -186,9 +154,8 @@ def load_sample_dataset():
     st.session_state["active_dataset_label"] = "Sample Bank Statement (May – July 2026)"
     st.session_state["processed_file_key"] = "demo_bank_statement"
 
-
 def extract_text_from_pdf(file) -> str:
-    """Extract text layout-aware from a PDF using pdfplumber."""
+
     text = ""
     try:
         with pdfplumber.open(file) as pdf:
@@ -200,16 +167,11 @@ def extract_text_from_pdf(file) -> str:
         st.error(f"PDF extraction error: {e}")
     return text
 
-
-# ===========================================================================
-# SIDEBAR
-# ===========================================================================
 with st.sidebar:
     st.markdown("## 💰 FinDoc AI")
     st.caption("Bank Statement Analyser")
     st.divider()
 
-    # Active status
     mode = st.session_state.get("data_mode", "none")
     if mode != "none" and st.session_state.get("transactions_df") is not None:
         st.markdown(f"**Active Data:** {st.session_state.get('active_dataset_label', 'Active')}")
@@ -218,10 +180,6 @@ with st.sidebar:
             clear_active_dataset()
             st.rerun()
 
-
-# ===========================================================================
-# MAIN HEADER
-# ===========================================================================
 st.markdown("# FinDoc AI")
 st.markdown("### *Your bank statements, easier to understand.*")
 st.write(
@@ -230,10 +188,6 @@ st.write(
 )
 st.divider()
 
-
-# ===========================================================================
-# DATA SOURCE SELECTION (SAMPLE DATA OR UPLOAD)
-# ===========================================================================
 col_mode1, col_mode2 = st.columns([1, 1])
 
 with col_mode1:
@@ -251,8 +205,6 @@ with col_mode2:
 
 st.markdown("")
 
-# --- FILE UPLOADER SECTION (Rendered only once, clean and stable) ---
-# If user currently has sample data active, we provide an upload area below if they wish to switch
 show_uploader = (st.session_state.get("data_mode") != "sample") or st.checkbox("Show file upload box to switch to a personal statement", value=False)
 
 if show_uploader:
@@ -267,15 +219,12 @@ if show_uploader:
         file_type = uploaded_file.name.split(".")[-1].lower()
         file_key = f"{uploaded_file.name}_{uploaded_file.size}"
 
-        # Only process if this file hasn't already been processed
         if st.session_state.get("processed_file_key") != file_key:
             clear_active_dataset()
 
-            # --- SINGLE CLEAN PROCESSING PANEL ---
             with st.status("Processing your statement...", expanded=True) as status_box:
                 st.write("📄 **Stage 1:** Reading and verifying document format...")
 
-                # Password handling for PDFs
                 file_to_process = uploaded_file
                 if file_type == "pdf":
                     try:
@@ -300,7 +249,6 @@ if show_uploader:
                         st.error(f"Cannot read PDF: {e}")
                         st.stop()
 
-                # Extraction & Validation
                 st.write("⚡ **Stage 2:** Extracting financial transactions...")
                 parsed_df = None
                 val_summary = None
@@ -311,7 +259,7 @@ if show_uploader:
                     csv_raw_text = uploaded_file.read().decode("utf-8", errors="replace")
                     vectorstore = process_and_store_text(csv_raw_text, uploaded_file.name)
                 else:
-                    # PDF extraction
+
                     raw_pdf_text = extract_text_from_pdf(file_to_process)
                     if not raw_pdf_text.strip():
                         st.error("⚠️ No text could be extracted from this PDF. Scanned image documents require OCR.")
@@ -348,16 +296,11 @@ if show_uploader:
                 )
             st.rerun()
 
-
-# ===========================================================================
-# DASHBOARD OVERVIEW (Persists Reliably Across Questions & Reruns)
-# ===========================================================================
 transactions_df = st.session_state.get("transactions_df")
 
 if transactions_df is not None and not transactions_df.empty:
     st.divider()
 
-    # Active dataset banner
     active_name = st.session_state.get("active_dataset_label", "Statement")
     col_hdr1, col_hdr2 = st.columns([3, 1])
     with col_hdr1:
@@ -368,7 +311,6 @@ if transactions_df is not None and not transactions_df.empty:
         else:
             st.info("Mode: Uploaded Statement")
 
-    # Reconciliation and data validation notices
     val_summary = st.session_state.get("validation_summary")
     if val_summary:
         reconcile = val_summary.get("reconciliation", {})
@@ -377,7 +319,6 @@ if transactions_df is not None and not transactions_df.empty:
         elif reconcile.get("status") == "discrepancy":
             st.warning(f"⚠️ **Reconciliation Notice:** {reconcile.get('message')}")
 
-    # Key Performance Metrics (Compact 4-Card Row)
     debits_df  = transactions_df[transactions_df["type"] == "debit"]
     credits_df = transactions_df[transactions_df["type"] == "credit"]
 
@@ -394,11 +335,10 @@ if transactions_df is not None and not transactions_df.empty:
     k4.metric("📈 Net Cash Flow", fmt_inr(net_flow))
     k5.metric("📉 Avg. Debit", fmt_inr(avg_debit))
 
-    # --- Charts Row ---
     chart_c1, chart_c2 = st.columns(2)
 
     with chart_c1:
-        # Spending by Category
+
         if not debits_df.empty and "category" in debits_df.columns:
             cat_data = (
                 debits_df.groupby("category")["amount"]
@@ -429,7 +369,7 @@ if transactions_df is not None and not transactions_df.empty:
             st.plotly_chart(fig_cat, use_container_width=True)
 
     with chart_c2:
-        # Monthly Comparison Trend
+
         if "date" in transactions_df.columns:
             df_dated = transactions_df.dropna(subset=["date"]).copy()
             df_dated["month"] = pd.to_datetime(df_dated["date"]).dt.to_period("M").astype(str)
@@ -461,7 +401,7 @@ if transactions_df is not None and not transactions_df.empty:
                 fig_m.update_yaxes(showgrid=True, gridcolor="#2d3748")
                 st.plotly_chart(fig_m, use_container_width=True)
             else:
-                # Top payees if statement spans only one month
+
                 top_pay = debits_df.groupby("description")["amount"].sum().reset_index().nlargest(6, "amount").sort_values("amount", ascending=True)
                 fig_p = px.bar(
                     top_pay,
@@ -483,7 +423,6 @@ if transactions_df is not None and not transactions_df.empty:
                 )
                 st.plotly_chart(fig_p, use_container_width=True)
 
-    # --- Searchable Transaction Explorer ---
     with st.expander("📋 Search & Inspect All Transactions", expanded=False):
         col_s1, col_s2, col_s3 = st.columns([2, 1, 1])
         with col_s1:
@@ -511,7 +450,7 @@ if transactions_df is not None and not transactions_df.empty:
         st.caption(f"Showing {len(view_df)} of {len(transactions_df)} transactions.")
 
 else:
-    # Helpful empty state when no dataset is loaded
+
     st.markdown("""
 <div style="text-align: center; padding: 40px 20px; background: #141824; border-radius: 8px; border: 1px dashed #2d3748; margin: 20px 0;">
     <div style="font-size: 40px; margin-bottom: 8px;">📊</div>
@@ -523,15 +462,10 @@ else:
 </div>
 """, unsafe_allow_html=True)
 
-
-# ===========================================================================
-# AI ASSISTANT SECTION ("Ask your statement")
-# ===========================================================================
 st.divider()
 st.markdown("### 💬 Ask your statement")
 st.caption("Ask natural language questions. Arithmetic questions use exact Pandas calculations; document facts use ChromaDB RAG.")
 
-# Suggested Questions in a clean 2x2 grid
 suggested_questions = [
     "How much did I spend in total?",
     "Which merchant received the most money?",
@@ -555,14 +489,12 @@ with q_grid_c2:
     if st.button(f"🔍 {suggested_questions[3]}", key="chip_3", use_container_width=True):
         clicked_preset = suggested_questions[3]
 
-# Render Message History
 for msg in st.session_state["messages"]:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if "route" in msg and msg["route"]:
             st.caption(f"Engine: **{msg['route']}**")
 
-# Analytical Routing Keywords
 ANALYTICAL_KEYWORDS = [
     "how much", "total", "most", "top", "spent", "spend", "spending",
     "highest", "lowest", "average", "mean", "sum", "breakdown",
@@ -574,17 +506,15 @@ ANALYTICAL_KEYWORDS = [
     "net cash", "cash flow", "savings", "surplus", "transactions"
 ]
 
-# Receive Question from Chip or Chat Input
 input_query = st.chat_input("e.g. How much did I spend in July? Who did I pay the most?")
 active_question = clicked_preset or input_query
 
 if active_question:
-    # 1. Display and record user message
+
     with st.chat_message("user"):
         st.markdown(active_question)
     st.session_state["messages"].append({"role": "user", "content": active_question})
 
-    # 2. Check if a dataset is currently active
     current_df = st.session_state.get("transactions_df")
 
     with st.chat_message("assistant"):
@@ -620,7 +550,6 @@ if active_question:
                     st.error(err_msg)
                     st.session_state["messages"].append({"role": "assistant", "content": err_msg, "route": "Error"})
 
-# Clear Chat History Button (if messages exist)
 if st.session_state["messages"]:
     if st.button("🗑️ Clear Chat History"):
         st.session_state["messages"] = []
