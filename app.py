@@ -20,6 +20,9 @@ from rag_chain import get_answer, answer_analytical_question
 
 load_dotenv()
 
+if not os.getenv("GROQ_API_KEY") and hasattr(st, "secrets") and "GROQ_API_KEY" in st.secrets:
+    os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+
 st.set_page_config(
     page_title="FinDoc AI — Bank Statement Analyser",
     page_icon="💰",
